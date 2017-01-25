@@ -529,4 +529,9 @@ public interface CalDavConstants extends DavConstants {
      * http://tools.ietf.org/html/draft-daboo-valarm-extensions-04
      */
     public static final String DEFAULT_ALARM_VTODO_DATE = "default-alarm-vtodo-date";
+    
+    
+    public static final String TEXT_MATCH_FILTER = "text-match";
+    
+    public static final String PROPERTY_PROPERTY_FILTER = "prop-filter";
 }

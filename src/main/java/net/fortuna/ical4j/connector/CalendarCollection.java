@@ -31,6 +31,8 @@
  */
 package net.fortuna.ical4j.connector;
 
+import java.net.URI;
+
 import net.fortuna.ical4j.connector.dav.enums.MediaType;
 import net.fortuna.ical4j.model.Calendar;
 import net.fortuna.ical4j.model.ConstraintViolationException;
@@ -122,6 +124,9 @@ public interface CalendarCollection extends ObjectCollection<Calendar> {
      * @throws ObjectStoreException where an unexpected error occurs
      */
     Calendar removeCalendar(String uid) throws FailedOperationException, ObjectStoreException;
+    
+    
+    Calendar removeCalendar(URI calendarUrl) throws FailedOperationException, ObjectStoreException;
     
     /**
      * Merges the specified calendar object with this collecton. This is done by

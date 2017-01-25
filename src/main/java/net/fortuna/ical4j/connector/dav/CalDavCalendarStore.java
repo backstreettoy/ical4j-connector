@@ -45,28 +45,6 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
-import net.fortuna.ical4j.connector.CalendarCollection;
-import net.fortuna.ical4j.connector.CalendarStore;
-import net.fortuna.ical4j.connector.ObjectNotFoundException;
-import net.fortuna.ical4j.connector.ObjectStoreException;
-import net.fortuna.ical4j.connector.dav.method.PrincipalPropertySearchInfo;
-import net.fortuna.ical4j.connector.dav.method.PrincipalPropertySearchMethod;
-import net.fortuna.ical4j.connector.dav.property.CalDavPropertyName;
-import net.fortuna.ical4j.data.ParserException;
-import net.fortuna.ical4j.model.Calendar;
-import net.fortuna.ical4j.model.component.VFreeBusy;
-import net.fortuna.ical4j.model.parameter.Cn;
-import net.fortuna.ical4j.model.parameter.CuType;
-import net.fortuna.ical4j.model.property.Attendee;
-import net.fortuna.ical4j.model.property.CalScale;
-import net.fortuna.ical4j.model.property.DtEnd;
-import net.fortuna.ical4j.model.property.DtStart;
-import net.fortuna.ical4j.model.property.Method;
-import net.fortuna.ical4j.model.property.Organizer;
-import net.fortuna.ical4j.model.property.ProdId;
-import net.fortuna.ical4j.model.property.Version;
-import net.fortuna.ical4j.util.UidGenerator;
-
 import org.apache.commons.httpclient.ChunkedInputStream;
 import org.apache.commons.httpclient.Header;
 import org.apache.commons.httpclient.HttpException;
@@ -96,6 +74,27 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
+import net.fortuna.ical4j.connector.CalendarStore;
+import net.fortuna.ical4j.connector.ObjectNotFoundException;
+import net.fortuna.ical4j.connector.ObjectStoreException;
+import net.fortuna.ical4j.connector.dav.method.PrincipalPropertySearchInfo;
+import net.fortuna.ical4j.connector.dav.method.PrincipalPropertySearchMethod;
+import net.fortuna.ical4j.connector.dav.property.CalDavPropertyName;
+import net.fortuna.ical4j.data.ParserException;
+import net.fortuna.ical4j.model.Calendar;
+import net.fortuna.ical4j.model.component.VFreeBusy;
+import net.fortuna.ical4j.model.parameter.Cn;
+import net.fortuna.ical4j.model.parameter.CuType;
+import net.fortuna.ical4j.model.property.Attendee;
+import net.fortuna.ical4j.model.property.CalScale;
+import net.fortuna.ical4j.model.property.DtEnd;
+import net.fortuna.ical4j.model.property.DtStart;
+import net.fortuna.ical4j.model.property.Method;
+import net.fortuna.ical4j.model.property.Organizer;
+import net.fortuna.ical4j.model.property.ProdId;
+import net.fortuna.ical4j.model.property.Version;
+import net.fortuna.ical4j.util.UidGenerator;
+
 /**
  * $Id$
  * 
@@ -104,7 +103,7 @@ import org.xml.sax.SAXException;
  * @author Ben
  * 
  */
-public final class CalDavCalendarStore extends AbstractDavObjectStore<CalDavCalendarCollection> implements
+public class CalDavCalendarStore extends AbstractDavObjectStore<CalDavCalendarCollection> implements
         CalendarStore<CalDavCalendarCollection> {
 
     private final String prodId;
@@ -128,7 +127,6 @@ public final class CalDavCalendarStore extends AbstractDavObjectStore<CalDavCale
         try {
             collection.create();
         } catch (IOException e) {
-            // TODO Auto-generated catch block
             e.printStackTrace();
         }
         return collection;
@@ -144,7 +142,6 @@ public final class CalDavCalendarStore extends AbstractDavObjectStore<CalDavCale
         try {
             collection.create();
         } catch (IOException e) {
-            // TODO Auto-generated catch block
             e.printStackTrace();
         }
         return collection;
@@ -158,7 +155,6 @@ public final class CalDavCalendarStore extends AbstractDavObjectStore<CalDavCale
         try {
             collection.create();
         } catch (IOException e) {
-            // TODO Auto-generated catch block
             e.printStackTrace();
         }
         return collection;
@@ -188,12 +184,10 @@ public final class CalDavCalendarStore extends AbstractDavObjectStore<CalDavCale
         throw new ObjectNotFoundException("Collection with id: [" + id + "] not found");
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    public CalendarCollection merge(String id, CalendarCollection calendar) {
-        // TODO Auto-generated method stub
-        return null;
+    
+    public CalDavCalendarCollection getInboxCollection() throws ParserConfigurationException, IOException, DavException {
+    	String inboxPath = findScheduleInbox();
+    	return CalDavCalendarCollection.collectionsFromParam(this, inboxPath);
     }
 
     public String findCalendarHomeSet() throws ParserConfigurationException, IOException, DavException {
@@ -483,10 +477,6 @@ public final class CalDavCalendarStore extends AbstractDavObjectStore<CalDavCale
         return collection;
     }
 
-    // public CalendarCollection replace(String id, CalendarCollection calendar) {
-    // // TODO Auto-generated method stub
-    // return null;
-    // }
 
     /**
      * @return the prodId

@@ -31,6 +31,38 @@
  */
 package net.fortuna.ical4j.connector.dav;
 
+import java.io.IOException;
+import java.io.StringReader;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+
+import org.apache.jackrabbit.webdav.DavConstants;
+import org.apache.jackrabbit.webdav.DavException;
+import org.apache.jackrabbit.webdav.DavServletResponse;
+import org.apache.jackrabbit.webdav.MultiStatus;
+import org.apache.jackrabbit.webdav.MultiStatusResponse;
+import org.apache.jackrabbit.webdav.Status;
+import org.apache.jackrabbit.webdav.client.methods.DeleteMethod;
+import org.apache.jackrabbit.webdav.property.DavProperty;
+import org.apache.jackrabbit.webdav.property.DavPropertyIterator;
+import org.apache.jackrabbit.webdav.property.DavPropertyName;
+import org.apache.jackrabbit.webdav.property.DavPropertyNameSet;
+import org.apache.jackrabbit.webdav.property.DavPropertySet;
+import org.apache.jackrabbit.webdav.property.DefaultDavProperty;
+import org.apache.jackrabbit.webdav.security.SecurityConstants;
+import org.apache.jackrabbit.webdav.version.report.ReportInfo;
+import org.apache.jackrabbit.webdav.version.report.ReportType;
+import org.apache.jackrabbit.webdav.xml.DomUtil;
+import org.w3c.dom.DOMException;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+
 import net.fortuna.ical4j.connector.CalendarCollection;
 import net.fortuna.ical4j.connector.FailedOperationException;
 import net.fortuna.ical4j.connector.ObjectStoreException;
@@ -38,6 +70,7 @@ import net.fortuna.ical4j.connector.dav.method.GetMethod;
 import net.fortuna.ical4j.connector.dav.method.MkCalendarMethod;
 import net.fortuna.ical4j.connector.dav.method.PutMethod;
 import net.fortuna.ical4j.connector.dav.method.ReportMethod;
+import net.fortuna.ical4j.connector.dav.model.CalendarWrapper;
 import net.fortuna.ical4j.connector.dav.property.BaseDavPropertyName;
 import net.fortuna.ical4j.connector.dav.property.CSDavPropertyName;
 import net.fortuna.ical4j.connector.dav.property.CalDavPropertyName;
@@ -48,28 +81,9 @@ import net.fortuna.ical4j.model.Calendar;
 import net.fortuna.ical4j.model.Component;
 import net.fortuna.ical4j.model.ConstraintViolationException;
 import net.fortuna.ical4j.model.DateTime;
+import net.fortuna.ical4j.model.Property;
 import net.fortuna.ical4j.model.property.Uid;
 import net.fortuna.ical4j.util.Calendars;
-import org.apache.jackrabbit.webdav.DavConstants;
-import org.apache.jackrabbit.webdav.*;
-import org.apache.jackrabbit.webdav.client.methods.DeleteMethod;
-import org.apache.jackrabbit.webdav.property.*;
-import org.apache.jackrabbit.webdav.security.SecurityConstants;
-import org.apache.jackrabbit.webdav.version.report.ReportInfo;
-import org.apache.jackrabbit.webdav.version.report.ReportType;
-import org.apache.jackrabbit.webdav.xml.DomUtil;
-import org.w3c.dom.DOMException;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-import java.io.IOException;
-import java.io.StringReader;
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * $Id$
@@ -109,6 +123,10 @@ public class CalDavCalendarCollection extends AbstractDavObjectCollection<Calend
     CalDavCalendarCollection(CalDavCalendarStore calDavCalendarStore, String id, DavPropertySet _properties) {
         this(calDavCalendarStore, id, null, null);
         this.properties = _properties;
+    }
+    
+    public static CalDavCalendarCollection collectionsFromParam(CalDavCalendarStore store, String url) {
+    	return new CalDavCalendarCollection(store, url);
     }
 
     /**
@@ -232,6 +250,46 @@ public class CalDavCalendarCollection extends AbstractDavObjectCollection<Calend
             e.printStackTrace();
         }
         return null;
+    }
+    
+    /**
+     * 使用EventId查询对应的Calendar对象
+     * @param uid
+     * @return
+     * @throws IOException
+     * @throws DavException
+     * @throws ParserConfigurationException
+     * @throws ParserException
+     */
+    public CalendarWrapper getEventByUid(String uid) throws IOException, DavException, ParserConfigurationException, ParserException {
+    	DocumentBuilderFactory BUILDER_FACTORY = DocumentBuilderFactory.newInstance();
+        Document document = BUILDER_FACTORY.newDocumentBuilder().newDocument();
+        Element calFilter = DomUtil.createElement(document, CalDavConstants.PROPERTY_COMP_FILTER,
+                CalDavConstants.CALDAV_NAMESPACE);
+        calFilter.setAttribute(CalDavConstants.ATTRIBUTE_NAME, Calendar.VCALENDAR);
+        Element eventFilter = DomUtil.createElement(document, CalDavConstants.PROPERTY_COMP_FILTER,
+                CalDavConstants.CALDAV_NAMESPACE);
+        eventFilter.setAttribute(CalDavConstants.ATTRIBUTE_NAME, Component.VEVENT);
+    	Element uidFilter = DomUtil.createElement(document, CalDavConstants.PROPERTY_PROPERTY_FILTER,
+                CalDavConstants.CALDAV_NAMESPACE);
+    	uidFilter.setAttribute(CalDavConstants.ATTRIBUTE_NAME, Property.UID);
+    	Element textMatchFilter = DomUtil.createElement(document, CalDavConstants.TEXT_MATCH_FILTER,
+                CalDavConstants.CALDAV_NAMESPACE,uid);
+    	uidFilter.appendChild(textMatchFilter);
+    	eventFilter.appendChild(uidFilter);
+    	calFilter.appendChild(eventFilter);
+    	
+    	Element calData = DomUtil.createElement(document, CalDavConstants.PROPERTY_CALENDAR_DATA,
+                CalDavConstants.CALDAV_NAMESPACE);
+        
+    	
+    	CalendarWrapper[] ret = this.getObjectsByFilter(calFilter, calData);
+    	if(ret.length > 0) {
+    		return ret[0];
+    	}
+    	else {
+    		return null;
+    	}
     }
 
     /**
@@ -508,6 +566,22 @@ public class CalDavCalendarCollection extends AbstractDavObjectCollection<Calend
 
         return calendar;
     }
+    
+	@Override
+	public Calendar removeCalendar(URI calendarUrl) throws FailedOperationException, ObjectStoreException {
+		DeleteMethod deleteMethod = new DeleteMethod(calendarUrl.toString());
+        try {
+            getStore().getClient().execute(deleteMethod);
+        } catch (IOException e) {
+            throw new ObjectStoreException(e);
+        }
+        if (!deleteMethod.succeeded()) {
+            throw new FailedOperationException(deleteMethod.getStatusLine().toString());
+        }
+
+        return null;
+	}
+	
 
     /**
      * {@inheritDoc}
@@ -549,7 +623,7 @@ public class CalDavCalendarCollection extends AbstractDavObjectCollection<Calend
      * @throws ParserConfigurationException
      * @throws ParserException
      */
-    public Calendar[] getEventsForTimePeriod(DateTime startTime, DateTime endTime)
+    public CalendarWrapper[] getEventsForTimePeriod(DateTime startTime, DateTime endTime)
             throws IOException, DavException, ParserConfigurationException, ParserException {
 
         DocumentBuilderFactory BUILDER_FACTORY = DocumentBuilderFactory.newInstance();
@@ -606,9 +680,9 @@ public class CalDavCalendarCollection extends AbstractDavObjectCollection<Calend
      * @throws ParserConfigurationException
      * @throws ParserException
      */
-    public Calendar[] getObjectsByFilter(org.w3c.dom.Element filter, org.w3c.dom.Element calData)
+    public CalendarWrapper[] getObjectsByFilter(org.w3c.dom.Element filter, org.w3c.dom.Element calData)
             throws IOException, DavException, ParserConfigurationException, ParserException {
-        ArrayList<Calendar> events = new ArrayList<Calendar>();
+        ArrayList<CalendarWrapper> events = new ArrayList<CalendarWrapper>();
 
         ReportInfo rinfo = new ReportInfo(ReportType.register(CalDavConstants.PROPERTY_CALENDAR_QUERY,
                 CalDavConstants.CALDAV_NAMESPACE,
@@ -644,6 +718,7 @@ public class CalDavCalendarCollection extends AbstractDavObjectCollection<Calend
         MultiStatusResponse[] responses = multiStatus.getResponses();
         for (int i = 0; i < responses.length; i++) {
             for (int j = 0; j < responses[i].getStatus().length; j++) {
+            	String url = responses[i].getHref();
                 Status status = responses[i].getStatus()[j];
                 for (DavPropertyIterator iNames = responses[i].getProperties(status.getStatusCode()).iterator(); iNames
                         .hasNext();) {
@@ -654,13 +729,20 @@ public class CalDavCalendarCollection extends AbstractDavObjectCollection<Calend
                             StringReader sin = new StringReader((String) name.getValue());
                             CalendarBuilder builder = new CalendarBuilder();
                             Calendar calendar = builder.build(sin);
-                            events.add(calendar);
+                            CalendarWrapper cw = new CalendarWrapper();
+                            cw.setCalendar(calendar);
+                            try {
+								cw.setWebDavUrl(new URI(url));
+							} catch (URISyntaxException e) {
+								throw new RuntimeException(e);
+							}
+                            events.add(cw);
                         }
                     }
                 }
             }
         }
-        return events.toArray(new Calendar[events.size()]);
+        return events.toArray(new CalendarWrapper[events.size()]);
     }
     
     /**
@@ -731,4 +813,6 @@ public class CalDavCalendarCollection extends AbstractDavObjectCollection<Calend
     public String toString() {
         return "Display Name: " +  getDisplayName() + ", id: " + getId();
     }
+
+
 }
