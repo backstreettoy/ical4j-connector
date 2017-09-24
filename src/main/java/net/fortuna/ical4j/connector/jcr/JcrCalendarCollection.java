@@ -31,6 +31,7 @@
  */
 package net.fortuna.ical4j.connector.jcr;
 
+import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Date;
@@ -50,6 +51,7 @@ import net.fortuna.ical4j.util.Calendars;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.jackrabbit.webdav.DavException;
 import org.jcrom.annotations.JcrProperty;
 
 /**
@@ -399,6 +401,11 @@ public class JcrCalendarCollection extends AbstractJcrObjectCollection<Calendar>
 
 	@Override
 	public Calendar removeCalendar(URI calendarUrl) throws FailedOperationException, ObjectStoreException {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public void updateScheduleDefaultCalendarUrl(String newUrl) throws IOException, DavException {
 		throw new UnsupportedOperationException();
 	}
 }

@@ -29,44 +29,38 @@
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package net.fortuna.ical4j.connector.dav.model;
-
-import java.io.Serializable;
-import java.net.URI;
-
-import net.fortuna.ical4j.model.Calendar;
-
-/**
- * Fuck the dummy License plugin
- * @author shl
- *
- */
-public class CalendarWrapper implements Serializable {
-
-	/**
-	 * 
-	 */
-	private static final long serialVersionUID = 5099638416520267115L;
-	
-	private Calendar calendar;
-	private URI webDavUrl;
-	
-	public Calendar getCalendar() {
-		return calendar;
-	}
-	public void setCalendar(Calendar calendar) {
-		this.calendar = calendar;
-	}
-	public URI getWebDavUrl() {
-		return webDavUrl;
-	}
-	public void setWebDavUrl(URI webDavUrl) {
-		this.webDavUrl = webDavUrl;
-	}
-	
-	@Override
-	public String toString() {
-		return "url: " + webDavUrl + " " + "calendar: " + calendar;
-	}
-	
-}
+//package net.fortuna.ical4j.connector.dav.property;
+//
+//import org.apache.jackrabbit.webdav.property.AbstractDavProperty;
+//import org.apache.jackrabbit.webdav.property.DavPropertyName;
+//import org.apache.jackrabbit.webdav.property.HrefProperty;
+//import org.apache.jackrabbit.webdav.xml.Namespace;
+//import org.w3c.dom.Document;
+//import org.w3c.dom.Element;
+//
+//
+//public class ScheduleDefaultCalendarUrl extends AbstractDavProperty<String[]>{
+//	
+//	
+//	
+//	public static final DavPropertyName NAME = DavPropertyName.create(
+//			"schedule-default-calendar-URL", Namespace.getNamespace("urn:ietf:params:xml:ns:caldav"));
+//	
+//	private HrefProperty href;
+//
+//	public ScheduleDefaultCalendarUrl(String value) {
+//		super(NAME, true);
+//		href = new HrefProperty(NAME, "/calendars/__uids__/65F9CE4C1D054A158F0E4CE116C01080/calendars", true);
+//	}
+//
+//	@Override
+//	public Element toXml(Document document) {
+//		return href.toXml(document);
+//	}
+//	
+//	@Override
+//	public String[] getValue() {
+//		return href.getValue();
+//	}
+//
+//}

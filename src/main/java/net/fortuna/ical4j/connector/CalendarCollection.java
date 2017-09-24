@@ -31,7 +31,10 @@
  */
 package net.fortuna.ical4j.connector;
 
+import java.io.IOException;
 import java.net.URI;
+
+import org.apache.jackrabbit.webdav.DavException;
 
 import net.fortuna.ical4j.connector.dav.enums.MediaType;
 import net.fortuna.ical4j.model.Calendar;
@@ -117,6 +120,8 @@ public interface CalendarCollection extends ObjectCollection<Calendar> {
      * @return a calendar object or null if no calendar with the specified UID exists
      */
     Calendar getCalendar(String uid);
+    
+    void updateScheduleDefaultCalendarUrl(String newUrl) throws IOException, DavException;
     
     /**
      * @param uid the UID of the calendar to remove

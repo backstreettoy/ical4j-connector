@@ -36,6 +36,7 @@ import java.io.StringReader;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -48,16 +49,19 @@ import org.apache.jackrabbit.webdav.MultiStatus;
 import org.apache.jackrabbit.webdav.MultiStatusResponse;
 import org.apache.jackrabbit.webdav.Status;
 import org.apache.jackrabbit.webdav.client.methods.DeleteMethod;
+import org.apache.jackrabbit.webdav.client.methods.PropPatchMethod;
 import org.apache.jackrabbit.webdav.property.DavProperty;
 import org.apache.jackrabbit.webdav.property.DavPropertyIterator;
 import org.apache.jackrabbit.webdav.property.DavPropertyName;
 import org.apache.jackrabbit.webdav.property.DavPropertyNameSet;
 import org.apache.jackrabbit.webdav.property.DavPropertySet;
 import org.apache.jackrabbit.webdav.property.DefaultDavProperty;
+import org.apache.jackrabbit.webdav.property.HrefProperty;
 import org.apache.jackrabbit.webdav.security.SecurityConstants;
 import org.apache.jackrabbit.webdav.version.report.ReportInfo;
 import org.apache.jackrabbit.webdav.version.report.ReportType;
 import org.apache.jackrabbit.webdav.xml.DomUtil;
+import org.apache.jackrabbit.webdav.xml.Namespace;
 import org.w3c.dom.DOMException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -95,7 +99,10 @@ import net.fortuna.ical4j.util.Calendars;
  */
 public class CalDavCalendarCollection extends AbstractDavObjectCollection<Calendar> implements CalendarCollection {
     
-    /**
+    private static final DavPropertyName CALDAV_PROPERTY_SCHEDULE_DEFAULT_CALENDAR_URL = DavPropertyName.create(
+		"schedule-default-calendar-URL", Namespace.getNamespace("urn:ietf:params:xml:ns:caldav"));
+
+	/**
      * Only {@link CalDavCalendarStore} should be calling this, so default modifier is applied.
      * 
      * @param calDavCalendarStore
@@ -468,7 +475,14 @@ public class CalDavCalendarCollection extends AbstractDavObjectCollection<Calend
      * Add a new calendar object in the collection. Creation will be done on the server right away.
      */
     public void addCalendar(Calendar calendar) throws ObjectStoreException, ConstraintViolationException {
-        writeCalendarOnServer(calendar, true);
+      Uid uid = Calendars.getUid(calendar);
+
+      String path = getPath();
+      if (!path.endsWith("/")) {
+          path = path.concat("/");
+      }
+      path = path + uid.getValue() + ".ics";
+      writeCalendarOnServer(path,calendar, true);
     }
     
     /**
@@ -477,21 +491,23 @@ public class CalDavCalendarCollection extends AbstractDavObjectCollection<Calend
      * @throws ObjectStoreException
      * @throws ConstraintViolationException
      */
-    public void updateCalendar(Calendar calendar) throws ObjectStoreException, ConstraintViolationException {
-        writeCalendarOnServer(calendar, false);
+    public void updateCalendar(URI uri, Calendar calendar) throws ObjectStoreException, ConstraintViolationException {
+        writeCalendarOnServer(uri.toString(), calendar, false);
     }
     
     /**
      * {@inheritDoc}
+     * @param calendarUid 
      */
-    public void writeCalendarOnServer(Calendar calendar, boolean isNew) throws ObjectStoreException, ConstraintViolationException {
-        Uid uid = Calendars.getUid(calendar);
-
-        String path = getPath();
-        if (!path.endsWith("/")) {
-            path = path.concat("/");
-        }
-        PutMethod putMethod = new PutMethod(path + uid.getValue() + ".ics");
+    public void writeCalendarOnServer(String uri, Calendar calendar, boolean isNew) throws ObjectStoreException, ConstraintViolationException {
+//        Uid uid = Calendars.getUid(calendar);
+//
+//        String path = getPath();
+//        if (!path.endsWith("/")) {
+//            path = path.concat("/");
+//        }
+    	
+        PutMethod putMethod = new PutMethod(uri);
         // putMethod.setAllEtags(true);
         if (isNew) {
             putMethod.addRequestHeader("If-None-Match", "*");
@@ -511,6 +527,7 @@ public class CalDavCalendarCollection extends AbstractDavObjectCollection<Calend
             getStore().getClient().execute(putMethod);
             if ((putMethod.getStatusCode() != DavServletResponse.SC_CREATED)
                     && (putMethod.getStatusCode() != DavServletResponse.SC_NO_CONTENT)) {
+            	System.out.println(putMethod.getResponseBodyAsString());
                 throw new ObjectStoreException("Error creating calendar on server: " + putMethod.getStatusLine());
             }
         } catch (IOException ioe) {
@@ -587,14 +604,14 @@ public class CalDavCalendarCollection extends AbstractDavObjectCollection<Calend
      * {@inheritDoc}
      */
     public final void merge(Calendar calendar) throws FailedOperationException, ObjectStoreException {
-        try {
-            Calendar[] uidCalendars = Calendars.split(calendar);
-            for (int i = 0; i < uidCalendars.length; i++) {
-                addCalendar(uidCalendars[i]);
-            }
-        } catch (ConstraintViolationException cve) {
-            throw new FailedOperationException("Invalid calendar format", cve);
-        }
+//        try {
+//            Calendar[] uidCalendars = Calendars.split(calendar);
+//            for (int i = 0; i < uidCalendars.length; i++) {
+//                addCalendar(uidCalendars[i]);
+//            }
+//        } catch (ConstraintViolationException cve) {
+//            throw new FailedOperationException("Invalid calendar format", cve);
+//        }
     }
 
     /**
@@ -814,5 +831,23 @@ public class CalDavCalendarCollection extends AbstractDavObjectCollection<Calend
         return "Display Name: " +  getDisplayName() + ", id: " + getId();
     }
 
+	@Override
+	public void updateScheduleDefaultCalendarUrl(String newUrl) throws IOException, DavException {
+		HrefProperty url = new HrefProperty(CALDAV_PROPERTY_SCHEDULE_DEFAULT_CALENDAR_URL, newUrl, true);
+		PropPatchMethod request = new PropPatchMethod(this.getId(), Arrays.asList(url));
+		int execute = this.getStore().getClient().execute(request);
+		MultiStatus multiStatus = request.getResponseBodyAsMultiStatus();
+        MultiStatusResponse[] responses = multiStatus.getResponses();
+        
+        MultiStatusResponse msResponse = responses[0];
+        DavPropertySet foundProperties = msResponse.getProperties(200);
+        DavProperty<?> defaultUrl = foundProperties.get(CALDAV_PROPERTY_SCHEDULE_DEFAULT_CALENDAR_URL);
+        if(defaultUrl != null) {
+        	return;
+        }
+        else {
+        	throw new RuntimeException();
+        }
+	}
 
 }

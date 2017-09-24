@@ -101,7 +101,9 @@ public class DavClient {
 		authPrefs.add(org.apache.commons.httpclient.auth.AuthPolicy.DIGEST);
 		authPrefs.add(org.apache.commons.httpclient.auth.AuthPolicy.BASIC);
 		httpClient.getParams().setParameter(AuthPolicy.AUTH_SCHEME_PRIORITY, authPrefs);
-
+		httpClient.getHttpConnectionManager().getParams().setConnectionTimeout(2000);
+		httpClient.getHttpConnectionManager().getParams().setSoTimeout(3000);
+		
 		DavPropertyNameSet props = new DavPropertyNameSet();
         props.add(DavPropertyName.RESOURCETYPE);
         props.add(CSDavPropertyName.CTAG);

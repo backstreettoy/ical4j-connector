@@ -48,6 +48,7 @@ import javax.xml.parsers.ParserConfigurationException;
 import org.apache.commons.httpclient.ChunkedInputStream;
 import org.apache.commons.httpclient.Header;
 import org.apache.commons.httpclient.HttpException;
+import org.apache.commons.httpclient.HttpStatus;
 import org.apache.commons.httpclient.methods.PostMethod;
 import org.apache.jackrabbit.webdav.DavException;
 import org.apache.jackrabbit.webdav.DavServletResponse;
@@ -174,14 +175,14 @@ public class CalDavCalendarStore extends AbstractDavObjectStore<CalDavCalendarCo
             MultiStatusResponse[] responses = multiStatus.getResponses();
 
             return CalDavCalendarCollection.collectionsFromResponse(this, responses).get(0);
-        } catch (HttpException e) {
-            e.printStackTrace();
         } catch (IOException e) {
-            e.printStackTrace();
+        	throw new ObjectStoreException(e);
         } catch (DavException e) {
-            e.printStackTrace();
+        	if(e.getErrorCode() == HttpStatus.SC_MOVED_PERMANENTLY || e.getErrorCode() == HttpStatus.SC_NOT_FOUND) {
+        		throw new ObjectNotFoundException("Collection with id: [" + id + "] not found");
+        	}
+        	throw new ObjectStoreException(e);
         }
-        throw new ObjectNotFoundException("Collection with id: [" + id + "] not found");
     }
 
     
